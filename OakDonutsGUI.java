@@ -1,0 +1,435 @@
+package gui;
+
+import entity.MenuItem;
+import entity.MenuItemDAO;
+import entity.Order;
+import entity.OrderDAO;
+import entity.OrderItem;
+import entity.OrderItemDAO;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
+public class OakDonutsGUI extends JFrame {
+
+    private MenuItemDAO menuItemDAO;
+    private OrderDAO orderDAO;
+    private OrderItemDAO orderItemDAO;
+
+    private JList<MenuItem> menuList;
+    private DefaultListModel<MenuItem> menuListModel;
+    private JComboBox<String> categoryFilter;
+    private JTextField searchField;
+
+    private JComboBox<String> icingCombo;
+    private JComboBox<String> fillingCombo;
+    private SpinnerNumberModel qtySpinnerModel;
+    private JSpinner qtySpinner;
+    private JLabel unitPriceLabel;
+
+    private JTable orderTable;
+    private DefaultTableModel orderTableModel;
+    private JLabel subtotalLabel;
+    private JLabel taxLabel;
+    private JLabel totalLabel;
+
+    private List<OrderItemTemp> currentOrderItems;
+    private static final double TAX_RATE = 0.06;
+
+    public OakDonutsGUI() {
+        menuItemDAO = new MenuItemDAO();
+        orderDAO = new OrderDAO();
+        orderItemDAO = new OrderItemDAO();
+        currentOrderItems = new ArrayList<>();
+
+        setTitle("Oak Donuts – Ordering Mockup");
+        setSize(1000, 650);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        // Create menu bar
+        JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        JMenu categoryMenu = new JMenu("Category");
+        JMenu helpMenu = new JMenu("Help");
+        menuBar.add(fileMenu);
+        menuBar.add(categoryMenu);
+        menuBar.add(helpMenu);
+        setJMenuBar(menuBar);
+
+        // Main panel
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Title
+        JLabel titleLabel = new JLabel("Oak Donuts");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        JLabel subtitleLabel = new JLabel("Windows GUI Mockup – Menu & Order");
+        subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        subtitleLabel.setForeground(Color.GRAY);
+
+        JPanel titlePanel = new JPanel(new GridLayout(2, 1));
+        titlePanel.add(titleLabel);
+        titlePanel.add(subtitleLabel);
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
+
+        // Content panel (3 sections)
+        JPanel contentPanel = new JPanel(new GridLayout(1, 3, 10, 0));
+
+        // Left: Filters
+        JPanel leftPanel = createLeftPanel();
+        contentPanel.add(leftPanel);
+
+        // Middle: Menu list
+        JPanel middlePanel = createMiddlePanel();
+        contentPanel.add(middlePanel);
+
+        // Right: Order panel
+        JPanel rightPanel = createRightPanel();
+        contentPanel.add(rightPanel);
+
+        mainPanel.add(contentPanel, BorderLayout.CENTER);
+        add(mainPanel);
+
+        loadMenuItems();
+        loadCategories();
+    }
+
+    private JPanel createLeftPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+
+        // Filters section
+        JPanel filtersPanel = new JPanel();
+        filtersPanel.setLayout(new BoxLayout(filtersPanel, BoxLayout.Y_AXIS));
+        filtersPanel.setBorder(BorderFactory.createTitledBorder("Filters"));
+
+        // Category filter
+        JPanel categoryPanel = new JPanel(new BorderLayout(5, 5));
+        categoryPanel.add(new JLabel("Category:"), BorderLayout.NORTH);
+        categoryFilter = new JComboBox<>();
+        categoryFilter.addItem("All");
+        categoryFilter.addActionListener(e -> filterMenuItems());
+        categoryPanel.add(categoryFilter, BorderLayout.CENTER);
+        filtersPanel.add(categoryPanel);
+
+        filtersPanel.add(Box.createVerticalStrut(10));
+
+        // Search
+        JPanel searchPanel = new JPanel(new BorderLayout(5, 5));
+        searchPanel.add(new JLabel("Search:"), BorderLayout.NORTH);
+        searchField = new JTextField();
+        searchField.addActionListener(e -> filterMenuItems());
+        searchPanel.add(searchField, BorderLayout.CENTER);
+        filtersPanel.add(searchPanel);
+
+        panel.add(filtersPanel, BorderLayout.NORTH);
+
+        // Item Options section
+        JPanel optionsPanel = new JPanel();
+        optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
+        optionsPanel.setBorder(BorderFactory.createTitledBorder("Item Options"));
+
+        JPanel icingPanel = new JPanel(new BorderLayout(5, 5));
+        icingPanel.add(new JLabel("Icing:"), BorderLayout.NORTH);
+        icingCombo = new JComboBox<>(new String[]{"None", "Chocolate", "Vanilla", "Strawberry", "Glazed"});
+        icingPanel.add(icingCombo, BorderLayout.CENTER);
+        optionsPanel.add(icingPanel);
+
+        optionsPanel.add(Box.createVerticalStrut(10));
+
+        JPanel fillingPanel = new JPanel(new BorderLayout(5, 5));
+        fillingPanel.add(new JLabel("Filling:"), BorderLayout.NORTH);
+        fillingCombo = new JComboBox<>(new String[]{"None", "Custard", "Jelly", "Cream", "Bavarian"});
+        fillingPanel.add(fillingCombo, BorderLayout.CENTER);
+        optionsPanel.add(fillingPanel);
+
+        panel.add(optionsPanel, BorderLayout.CENTER);
+
+        // Quantity and Add button
+        JPanel bottomPanel = new JPanel(new BorderLayout(5, 5));
+
+        JPanel qtyPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        qtyPanel.add(new JLabel("Qty:"));
+        qtySpinnerModel = new SpinnerNumberModel(2, 1, 99, 1);
+        qtySpinner = new JSpinner(qtySpinnerModel);
+        qtySpinner.setPreferredSize(new Dimension(60, 25));
+        qtyPanel.add(qtySpinner);
+
+        unitPriceLabel = new JLabel("Unit: $0.00");
+        qtyPanel.add(unitPriceLabel);
+
+        bottomPanel.add(qtyPanel, BorderLayout.NORTH);
+
+        JButton addButton = new JButton("Add to Order");
+        addButton.addActionListener(e -> addToOrder());
+        bottomPanel.add(addButton, BorderLayout.SOUTH);
+
+        panel.add(bottomPanel, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private JPanel createMiddlePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Menu"));
+
+        menuListModel = new DefaultListModel<>();
+        menuList = new JList<>(menuListModel);
+        menuList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        menuList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updateUnitPrice();
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(menuList);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createRightPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setBorder(BorderFactory.createTitledBorder("Order"));
+
+        // Order table
+        String[] columnNames = {"Item", "Options", "Qty", "Price", "Total"};
+        orderTableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        orderTable = new JTable(orderTableModel);
+        orderTable.getColumnModel().getColumn(0).setPreferredWidth(120);
+        orderTable.getColumnModel().getColumn(1).setPreferredWidth(180);
+        orderTable.getColumnModel().getColumn(2).setPreferredWidth(40);
+        orderTable.getColumnModel().getColumn(3).setPreferredWidth(60);
+        orderTable.getColumnModel().getColumn(4).setPreferredWidth(60);
+
+        JScrollPane scrollPane = new JScrollPane(orderTable);
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        // Bottom panel with totals and buttons
+        JPanel bottomPanel = new JPanel(new BorderLayout(5, 5));
+
+        // Totals panel
+        JPanel totalsPanel = new JPanel(new GridLayout(3, 2, 5, 5));
+        totalsPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+
+        totalsPanel.add(new JLabel("Subtotal:", SwingConstants.RIGHT));
+        subtotalLabel = new JLabel("$0.00", SwingConstants.RIGHT);
+        totalsPanel.add(subtotalLabel);
+
+        totalsPanel.add(new JLabel("Tax (6%):", SwingConstants.RIGHT));
+        taxLabel = new JLabel("$0.00", SwingConstants.RIGHT);
+        totalsPanel.add(taxLabel);
+
+        JLabel totalTextLabel = new JLabel("Total:", SwingConstants.RIGHT);
+        totalTextLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        totalsPanel.add(totalTextLabel);
+        totalLabel = new JLabel("$0.00", SwingConstants.RIGHT);
+        totalLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        totalsPanel.add(totalLabel);
+
+        bottomPanel.add(totalsPanel, BorderLayout.NORTH);
+
+        // Buttons panel
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton clearButton = new JButton("Clear");
+        clearButton.addActionListener(e -> clearOrder());
+        JButton checkoutButton = new JButton("Checkout");
+        checkoutButton.addActionListener(e -> checkout());
+        buttonsPanel.add(clearButton);
+        buttonsPanel.add(checkoutButton);
+
+        bottomPanel.add(buttonsPanel, BorderLayout.SOUTH);
+
+        panel.add(bottomPanel, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private void loadCategories() {
+        List<String> categories = menuItemDAO.getCategories();
+        for (String category : categories) {
+            categoryFilter.addItem(category);
+        }
+    }
+
+    private void loadMenuItems() {
+        menuListModel.clear();
+        List<MenuItem> items = menuItemDAO.getAll();
+        for (MenuItem item : items) {
+            menuListModel.addElement(item);
+        }
+    }
+
+    private void filterMenuItems() {
+        menuListModel.clear();
+        String selectedCategory = (String) categoryFilter.getSelectedItem();
+        String searchText = searchField.getText().toLowerCase();
+
+        List<MenuItem> items;
+        if (selectedCategory != null && !selectedCategory.equals("All")) {
+            items = menuItemDAO.getByCategory(selectedCategory);
+        } else {
+            items = menuItemDAO.getAll();
+        }
+
+        for (MenuItem item : items) {
+            if (searchText.isEmpty() || item.getName().toLowerCase().contains(searchText)) {
+                menuListModel.addElement(item);
+            }
+        }
+    }
+
+    private void updateUnitPrice() {
+        MenuItem selected = menuList.getSelectedValue();
+        if (selected != null) {
+            unitPriceLabel.setText(String.format("Unit: $%.2f", selected.getPrice()));
+        } else {
+            unitPriceLabel.setText("Unit: $0.00");
+        }
+    }
+
+    private void addToOrder() {
+        MenuItem selected = menuList.getSelectedValue();
+        if (selected == null) {
+            JOptionPane.showMessageDialog(this, "Please select a menu item!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String icing = (String) icingCombo.getSelectedItem();
+        String filling = (String) fillingCombo.getSelectedItem();
+        int qty = (Integer) qtySpinner.getValue();
+        double price = selected.getPrice();
+        double total = price * qty;
+
+        // Add to temporary order list
+        OrderItemTemp item = new OrderItemTemp(selected, qty, icing, filling, price, total);
+        currentOrderItems.add(item);
+
+        // Add to table
+        String options = "";
+        if (!icing.equals("None") || !filling.equals("None")) {
+            List<String> opts = new ArrayList<>();
+            if (!icing.equals("None")) opts.add("Icing: " + icing);
+            if (!filling.equals("None")) opts.add("Filling: " + filling);
+            options = String.join(", ", opts);
+        } else {
+            options = "-";
+        }
+
+        orderTableModel.addRow(new Object[]{
+                selected.getName(),
+                options,
+                qty,
+                String.format("$%.2f", price),
+                String.format("$%.2f", total)
+        });
+
+        updateTotals();
+    }
+
+    private void updateTotals() {
+        double subtotal = 0.0;
+        for (OrderItemTemp item : currentOrderItems) {
+            subtotal += item.total;
+        }
+
+        double tax = subtotal * TAX_RATE;
+        double total = subtotal + tax;
+
+        subtotalLabel.setText(String.format("$%.2f", subtotal));
+        taxLabel.setText(String.format("$%.2f", tax));
+        totalLabel.setText(String.format("$%.2f", total));
+    }
+
+    private void clearOrder() {
+        currentOrderItems.clear();
+        orderTableModel.setRowCount(0);
+        updateTotals();
+    }
+
+    private void checkout() {
+        if (currentOrderItems.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Your order is empty!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Calculate totals
+        double subtotal = 0.0;
+        for (OrderItemTemp item : currentOrderItems) {
+            subtotal += item.total;
+        }
+        double tax = subtotal * TAX_RATE;
+        double total = subtotal + tax;
+
+        // Create order
+        Order order = new Order(0, LocalDateTime.now(), subtotal, tax, total);
+        orderDAO.insert(order);
+
+        // Save order items
+        for (OrderItemTemp tempItem : currentOrderItems) {
+            OrderItem orderItem = new OrderItem(
+                    0,
+                    order.getId(),
+                    tempItem.menuItem.getId(),
+                    tempItem.menuItem.getName(),
+                    tempItem.quantity,
+                    tempItem.icing,
+                    tempItem.filling,
+                    tempItem.price,
+                    tempItem.total
+            );
+            orderItemDAO.insert(orderItem);
+        }
+
+        // Show confirmation dialog
+        String message = String.format(
+                "Thank you!\nTotal due: $%.2f\n(This is a mockup – no payment processed.)",
+                total
+        );
+
+        JOptionPane.showMessageDialog(this, message, "Checkout", JOptionPane.INFORMATION_MESSAGE);
+
+        clearOrder();
+    }
+
+    // Helper class for temporary order items
+    private class OrderItemTemp {
+        MenuItem menuItem;
+        int quantity;
+        String icing;
+        String filling;
+        double price;
+        double total;
+
+        OrderItemTemp(MenuItem menuItem, int quantity, String icing, String filling, double price, double total) {
+            this.menuItem = menuItem;
+            this.quantity = quantity;
+            this.icing = icing;
+            this.filling = filling;
+            this.price = price;
+            this.total = total;
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            OakDonutsGUI gui = new OakDonutsGUI();
+            gui.setVisible(true);
+        });
+    }
+}

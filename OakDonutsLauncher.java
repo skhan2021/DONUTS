@@ -1,0 +1,112 @@
+package gui;
+
+import entity.MenuItem;
+import entity.MenuItemDAO;
+import entity.Order;
+import entity.OrderDAO;
+import entity.OrderItem;
+import entity.OrderItemDAO;
+import javax.swing.*;
+import java.awt.*;
+
+/**
+ * Main launcher for Oak Donuts system
+ * Provides options to launch customer ordering interface or admin panel
+ */
+public class OakDonutsLauncher extends JFrame {
+
+    public OakDonutsLauncher() {
+        setTitle("Oak Donuts - System Launcher");
+        setSize(400, 300);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout(20, 20));
+
+        // Logo/Title panel
+        JPanel titlePanel = new JPanel(new GridLayout(3, 1));
+        titlePanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 10, 20));
+
+        JLabel titleLabel = new JLabel("Oak Donuts", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 32));
+
+        JLabel subtitleLabel = new JLabel("Ordering System", SwingConstants.CENTER);
+        subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        subtitleLabel.setForeground(Color.GRAY);
+
+        JLabel versionLabel = new JLabel("Version 1.0", SwingConstants.CENTER);
+        versionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        versionLabel.setForeground(Color.LIGHT_GRAY);
+
+        titlePanel.add(titleLabel);
+        titlePanel.add(subtitleLabel);
+        titlePanel.add(versionLabel);
+
+        add(titlePanel, BorderLayout.NORTH);
+
+        // Buttons panel
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 10, 10));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 40, 30, 40));
+
+        JButton customerBtn = new JButton("Customer Ordering");
+        customerBtn.setFont(new Font("Arial", Font.BOLD, 16));
+        customerBtn.setPreferredSize(new Dimension(300, 50));
+        customerBtn.addActionListener(e -> launchCustomerInterface());
+
+        JButton adminBtn = new JButton("Admin Panel");
+        adminBtn.setFont(new Font("Arial", Font.BOLD, 16));
+        adminBtn.setPreferredSize(new Dimension(300, 50));
+        adminBtn.addActionListener(e -> launchAdminPanel());
+
+        buttonPanel.add(customerBtn);
+        buttonPanel.add(adminBtn);
+
+        add(buttonPanel, BorderLayout.CENTER);
+
+        // Footer
+        JLabel footerLabel = new JLabel("© 2024 Oak Donuts. All rights reserved.", SwingConstants.CENTER);
+        footerLabel.setFont(new Font("Arial", Font.PLAIN, 10));
+        footerLabel.setForeground(Color.GRAY);
+        footerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        add(footerLabel, BorderLayout.SOUTH);
+    }
+
+    private void launchCustomerInterface() {
+        SwingUtilities.invokeLater(() -> {
+            OakDonutsGUI customerGUI = new OakDonutsGUI();
+            customerGUI.setVisible(true);
+        });
+    }
+
+    private void launchAdminPanel() {
+        // Simple password protection
+        String password = JOptionPane.showInputDialog(this,
+                "Enter admin password:",
+                "Authentication",
+                JOptionPane.QUESTION_MESSAGE);
+
+        if (password != null && password.equals("admin")) {
+            SwingUtilities.invokeLater(() -> {
+                AdminPanel adminPanel = new AdminPanel();
+                adminPanel.setVisible(true);
+            });
+        } else if (password != null) {
+            JOptionPane.showMessageDialog(this,
+                    "Incorrect password!",
+                    "Authentication Failed",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            OakDonutsLauncher launcher = new OakDonutsLauncher();
+            launcher.setVisible(true);
+        });
+    }
+}
