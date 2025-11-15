@@ -1,11 +1,30 @@
 package entity;
 
+/**
+ * MenuItem - Entity class representing a menu item (donut, beverage, food)
+ *
+ * This represents a row in the MenuItem database table.
+ *
+ * Table columns:
+ *   id       - Unique identifier (auto-generated)
+ *   name     - Item name (e.g., "Glazed Donut")
+ *   price    - Price in dollars (e.g., 1.49)
+ *   category - Category (e.g., "Donuts", "Beverages")
+ */
 public class MenuItem {
-    private int id;
-    private String name;
-    private double price;
-    private String category;
+    private int id;          // Primary key
+    private String name;     // Item name
+    private double price;    // Price in dollars
+    private String category; // Category for grouping
 
+    /**
+     * Constructor - creates a MenuItem with all fields
+     *
+     * @param id       The ID (use 0 for new items before database insertion)
+     * @param name     The item name
+     * @param price    The price
+     * @param category The category
+     */
     public MenuItem(int id, String name, double price, String category) {
         this.id = id;
         this.name = name;
@@ -13,20 +32,47 @@ public class MenuItem {
         this.category = category;
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    // Getters and Setters
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public int getId() {
+        return id;
+    }
 
-    public double getPrice() { return price; }
-    public void setPrice(double price) { this.price = price; }
+    public void setId(int id) {
+        this.id = id;
+    }
 
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
+    public String getName() {
+        return name;
+    }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    /**
+     * toString - provides a string representation for display
+     * Used when the MenuItem is displayed in a JList
+     * Shows: "Glazed Donut - $1.49"
+     */
     @Override
     public String toString() {
-        return name + " — $" + String.format("%.2f", price);
+        return name + " – $" + String.format("%.2f", price);
     }
 }
