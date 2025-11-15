@@ -14,44 +14,66 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * OakDonutsGUI - Customer ordering interface
+ *
+ * This is the main GUI for customers to:
+ * - Browse menu items by category
+ * - Search for items
+ * - Customize items with icing and filling options
+ * - Add items to their order
+ * - View order summary with pricing
+ * - Checkout and save order to database
+ */
 public class OakDonutsGUI extends JFrame {
 
-    private MenuItemDAO menuItemDAO;
-    private OrderDAO orderDAO;
-    private OrderItemDAO orderItemDAO;
+    // ===== DATABASE ACCESS OBJECTS (DAOs) =====
+    // These handle all database operations for each entity
+    private MenuItemDAO menuItemDAO;  // For menu items (donuts, beverages, etc.)
+    private OrderDAO orderDAO;        // For orders (customer purchases)
+    private OrderItemDAO orderItemDAO; // For order items (individual items in an order)
 
-    private JList<MenuItem> menuList;
-    private DefaultListModel<MenuItem> menuListModel;
-    private JComboBox<String> categoryFilter;
-    private JTextField searchField;
+    // ===== MENU SECTION COMPONENTS =====
+    private JList<MenuItem> menuList;              // List to display menu items
+    private DefaultListModel<MenuItem> menuListModel; // Model to hold menu items data
+    private JComboBox<String> categoryFilter;      // Dropdown to filter by category
+    private JTextField searchField;                // Text field to search items
 
-    private JComboBox<String> icingCombo;
-    private JComboBox<String> fillingCombo;
-    private SpinnerNumberModel qtySpinnerModel;
-    private JSpinner qtySpinner;
-    private JLabel unitPriceLabel;
+    // ===== CUSTOMIZATION SECTION COMPONENTS =====
+    private JComboBox<String> icingCombo;          // Dropdown for icing options
+    private JComboBox<String> fillingCombo;        // Dropdown for filling options
+    private SpinnerNumberModel qtySpinnerModel;    // Model for quantity spinner
+    private JSpinner qtySpinner;                   // Spinner to select quantity
+    private JLabel unitPriceLabel;                 // Shows price per unit
 
-    private JTable orderTable;
-    private DefaultTableModel orderTableModel;
-    private JLabel subtotalLabel;
-    private JLabel taxLabel;
-    private JLabel totalLabel;
+    // ===== ORDER SECTION COMPONENTS =====
+    private JTable orderTable;                     // Table to display current order items
+    private DefaultTableModel orderTableModel;     // Model to hold order data
+    private JLabel subtotalLabel;                  // Shows subtotal amount
+    private JLabel taxLabel;                       // Shows tax amount
+    private JLabel totalLabel;                     // Shows total amount
 
-    private List<OrderItemTemp> currentOrderItems;
-    private static final double TAX_RATE = 0.06;
+    // ===== ORDER DATA =====
+    private List<OrderItemTemp> currentOrderItems; // Temporary storage for current order before checkout
+    private static final double TAX_RATE = 0.06;  // 6% tax rate (constant)
 
+    /**
+     * Constructor - sets up the entire GUI
+     */
     public OakDonutsGUI() {
+        // Initialize DAOs for database access
         menuItemDAO = new MenuItemDAO();
         orderDAO = new OrderDAO();
         orderItemDAO = new OrderItemDAO();
         currentOrderItems = new ArrayList<>();
 
+        // Configure main window
         setTitle("Oak Donuts – Ordering Mockup");
         setSize(1000, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
+        setLocationRelativeTo(null); // Center on screen
 
-        // Create menu bar
+        // ===== CREATE MENU BAR =====
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenu categoryMenu = new JMenu("Category");
@@ -61,11 +83,11 @@ public class OakDonutsGUI extends JFrame {
         menuBar.add(helpMenu);
         setJMenuBar(menuBar);
 
-        // Main panel
+        // ===== CREATE MAIN PANEL =====
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Title
+        // ===== CREATE TITLE SECTION =====
         JLabel titleLabel = new JLabel("Oak Donuts");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         JLabel subtitleLabel = new JLabel("Windows GUI Mockup – Menu & Order");
@@ -77,70 +99,79 @@ public class OakDonutsGUI extends JFrame {
         titlePanel.add(subtitleLabel);
         mainPanel.add(titlePanel, BorderLayout.NORTH);
 
-        // Content panel (3 sections)
+        // ===== CREATE 3-COLUMN CONTENT PANEL =====
+        // Left: Filters and customization options
+        // Middle: Menu list
+        // Right: Current order and checkout
         JPanel contentPanel = new JPanel(new GridLayout(1, 3, 10, 0));
 
-        // Left: Filters
+        // Create the three panels
         JPanel leftPanel = createLeftPanel();
         contentPanel.add(leftPanel);
 
-        // Middle: Menu list
         JPanel middlePanel = createMiddlePanel();
         contentPanel.add(middlePanel);
 
-        // Right: Order panel
         JPanel rightPanel = createRightPanel();
         contentPanel.add(rightPanel);
 
         mainPanel.add(contentPanel, BorderLayout.CENTER);
         add(mainPanel);
 
-        loadMenuItems();
-        loadCategories();
+        // Load initial data from database
+        loadMenuItems();   // Load all menu items
+        loadCategories();  // Load category options for filter
     }
 
+    /**
+     * Create the left panel with filters and item customization options
+     */
     private JPanel createLeftPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
 
-        // Filters section
+        // ===== FILTERS SECTION (TOP) =====
         JPanel filtersPanel = new JPanel();
-        filtersPanel.setLayout(new BoxLayout(filtersPanel, BoxLayout.Y_AXIS));
+        filtersPanel.setLayout(new BoxLayout(filtersPanel, BoxLayout.Y_AXIS)); // Vertical layout
         filtersPanel.setBorder(BorderFactory.createTitledBorder("Filters"));
 
-        // Category filter
+        // Category filter dropdown
         JPanel categoryPanel = new JPanel(new BorderLayout(5, 5));
         categoryPanel.add(new JLabel("Category:"), BorderLayout.NORTH);
         categoryFilter = new JComboBox<>();
-        categoryFilter.addItem("All");
+        categoryFilter.addItem("All"); // First option is "All"
+        // When selection changes, re-filter the menu items
         categoryFilter.addActionListener(e -> filterMenuItems());
         categoryPanel.add(categoryFilter, BorderLayout.CENTER);
         filtersPanel.add(categoryPanel);
 
-        filtersPanel.add(Box.createVerticalStrut(10));
+        filtersPanel.add(Box.createVerticalStrut(10)); // Add spacing
 
-        // Search
+        // Search text field
         JPanel searchPanel = new JPanel(new BorderLayout(5, 5));
         searchPanel.add(new JLabel("Search:"), BorderLayout.NORTH);
         searchField = new JTextField();
+        // When Enter is pressed, filter menu items
         searchField.addActionListener(e -> filterMenuItems());
         searchPanel.add(searchField, BorderLayout.CENTER);
         filtersPanel.add(searchPanel);
 
         panel.add(filtersPanel, BorderLayout.NORTH);
 
-        // Item Options section
+        // ===== ITEM OPTIONS SECTION (CENTER) =====
         JPanel optionsPanel = new JPanel();
         optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
         optionsPanel.setBorder(BorderFactory.createTitledBorder("Item Options"));
 
+        // Icing options dropdown
         JPanel icingPanel = new JPanel(new BorderLayout(5, 5));
         icingPanel.add(new JLabel("Icing:"), BorderLayout.NORTH);
         icingCombo = new JComboBox<>(new String[]{"None", "Chocolate", "Vanilla", "Strawberry", "Glazed"});
         icingPanel.add(icingCombo, BorderLayout.CENTER);
         optionsPanel.add(icingPanel);
 
-        optionsPanel.add(Box.createVerticalStrut(10));
+        optionsPanel.add(Box.createVerticalStrut(10)); // Add spacing
 
+        // Filling options dropdown
         JPanel fillingPanel = new JPanel(new BorderLayout(5, 5));
         fillingPanel.add(new JLabel("Filling:"), BorderLayout.NORTH);
         fillingCombo = new JComboBox<>(new String[]{"None", "Custard", "Jelly", "Cream", "Bavarian"});
@@ -149,23 +180,27 @@ public class OakDonutsGUI extends JFrame {
 
         panel.add(optionsPanel, BorderLayout.CENTER);
 
-        // Quantity and Add button
+        // ===== QUANTITY AND ADD BUTTON (BOTTOM) =====
         JPanel bottomPanel = new JPanel(new BorderLayout(5, 5));
 
+        // Quantity spinner and unit price
         JPanel qtyPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         qtyPanel.add(new JLabel("Qty:"));
+        // Create spinner with initial value 2, min 1, max 99, step 1
         qtySpinnerModel = new SpinnerNumberModel(2, 1, 99, 1);
         qtySpinner = new JSpinner(qtySpinnerModel);
         qtySpinner.setPreferredSize(new Dimension(60, 25));
         qtyPanel.add(qtySpinner);
 
+        // Label to show unit price of selected item
         unitPriceLabel = new JLabel("Unit: $0.00");
         qtyPanel.add(unitPriceLabel);
 
         bottomPanel.add(qtyPanel, BorderLayout.NORTH);
 
+        // Add to Order button
         JButton addButton = new JButton("Add to Order");
-        addButton.addActionListener(e -> addToOrder());
+        addButton.addActionListener(e -> addToOrder()); // Call addToOrder() when clicked
         bottomPanel.add(addButton, BorderLayout.SOUTH);
 
         panel.add(bottomPanel, BorderLayout.SOUTH);
@@ -173,62 +208,81 @@ public class OakDonutsGUI extends JFrame {
         return panel;
     }
 
+    /**
+     * Create the middle panel with the menu items list
+     */
     private JPanel createMiddlePanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Menu"));
 
+        // Create list to display menu items
         menuListModel = new DefaultListModel<>();
         menuList = new JList<>(menuListModel);
-        menuList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        menuList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // Only one item at a time
+
+        // When selection changes, update the unit price display
         menuList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
+            if (!e.getValueIsAdjusting()) { // Only act when selection is finalized
                 updateUnitPrice();
             }
         });
 
+        // Add list to scroll pane in case menu is long
         JScrollPane scrollPane = new JScrollPane(menuList);
         panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
     }
 
+    /**
+     * Create the right panel with current order and checkout
+     */
     private JPanel createRightPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("Order"));
 
-        // Order table
+        // ===== ORDER TABLE =====
+        // Define column names for the order table
         String[] columnNames = {"Item", "Options", "Qty", "Price", "Total"};
+
+        // Create table model with custom behavior (cells not editable)
         orderTableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false;
+                return false; // Make all cells read-only
             }
         };
+
         orderTable = new JTable(orderTableModel);
-        orderTable.getColumnModel().getColumn(0).setPreferredWidth(120);
-        orderTable.getColumnModel().getColumn(1).setPreferredWidth(180);
-        orderTable.getColumnModel().getColumn(2).setPreferredWidth(40);
-        orderTable.getColumnModel().getColumn(3).setPreferredWidth(60);
-        orderTable.getColumnModel().getColumn(4).setPreferredWidth(60);
+
+        // Set preferred column widths for better display
+        orderTable.getColumnModel().getColumn(0).setPreferredWidth(120); // Item
+        orderTable.getColumnModel().getColumn(1).setPreferredWidth(180); // Options
+        orderTable.getColumnModel().getColumn(2).setPreferredWidth(40);  // Qty
+        orderTable.getColumnModel().getColumn(3).setPreferredWidth(60);  // Price
+        orderTable.getColumnModel().getColumn(4).setPreferredWidth(60);  // Total
 
         JScrollPane scrollPane = new JScrollPane(orderTable);
         panel.add(scrollPane, BorderLayout.CENTER);
 
-        // Bottom panel with totals and buttons
+        // ===== BOTTOM PANEL (TOTALS AND BUTTONS) =====
         JPanel bottomPanel = new JPanel(new BorderLayout(5, 5));
 
-        // Totals panel
-        JPanel totalsPanel = new JPanel(new GridLayout(3, 2, 5, 5));
+        // Totals panel - shows subtotal, tax, and total
+        JPanel totalsPanel = new JPanel(new GridLayout(3, 2, 5, 5)); // 3 rows, 2 columns
         totalsPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
 
+        // Subtotal row
         totalsPanel.add(new JLabel("Subtotal:", SwingConstants.RIGHT));
         subtotalLabel = new JLabel("$0.00", SwingConstants.RIGHT);
         totalsPanel.add(subtotalLabel);
 
+        // Tax row
         totalsPanel.add(new JLabel("Tax (6%):", SwingConstants.RIGHT));
         taxLabel = new JLabel("$0.00", SwingConstants.RIGHT);
         totalsPanel.add(taxLabel);
 
+        // Total row (bold)
         JLabel totalTextLabel = new JLabel("Total:", SwingConstants.RIGHT);
         totalTextLabel.setFont(new Font("Arial", Font.BOLD, 14));
         totalsPanel.add(totalTextLabel);
@@ -238,12 +292,15 @@ public class OakDonutsGUI extends JFrame {
 
         bottomPanel.add(totalsPanel, BorderLayout.NORTH);
 
-        // Buttons panel
+        // Buttons panel - Clear and Checkout
         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
         JButton clearButton = new JButton("Clear");
-        clearButton.addActionListener(e -> clearOrder());
+        clearButton.addActionListener(e -> clearOrder()); // Clear entire order
+
         JButton checkoutButton = new JButton("Checkout");
-        checkoutButton.addActionListener(e -> checkout());
+        checkoutButton.addActionListener(e -> checkout()); // Process checkout
+
         buttonsPanel.add(clearButton);
         buttonsPanel.add(checkoutButton);
 
@@ -254,6 +311,9 @@ public class OakDonutsGUI extends JFrame {
         return panel;
     }
 
+    /**
+     * Load all categories from database into the category filter dropdown
+     */
     private void loadCategories() {
         List<String> categories = menuItemDAO.getCategories();
         for (String category : categories) {
@@ -261,60 +321,86 @@ public class OakDonutsGUI extends JFrame {
         }
     }
 
+    /**
+     * Load all menu items from database into the menu list
+     */
     private void loadMenuItems() {
-        menuListModel.clear();
-        List<MenuItem> items = menuItemDAO.getAll();
+        menuListModel.clear(); // Clear existing items
+        List<MenuItem> items = menuItemDAO.getAll(); // Get all items from database
         for (MenuItem item : items) {
-            menuListModel.addElement(item);
+            menuListModel.addElement(item); // Add each item to the list
         }
     }
 
+    /**
+     * Filter menu items based on selected category and search text
+     * This runs when the user selects a category or types in the search field
+     */
     private void filterMenuItems() {
-        menuListModel.clear();
+        menuListModel.clear(); // Clear current list
+
+        // Get current filter values
         String selectedCategory = (String) categoryFilter.getSelectedItem();
         String searchText = searchField.getText().toLowerCase();
 
+        // Get items from database based on category
         List<MenuItem> items;
         if (selectedCategory != null && !selectedCategory.equals("All")) {
+            // Get items in selected category
             items = menuItemDAO.getByCategory(selectedCategory);
         } else {
+            // Get all items
             items = menuItemDAO.getAll();
         }
 
+        // Filter by search text and add to list
         for (MenuItem item : items) {
+            // If search is empty OR item name contains search text
             if (searchText.isEmpty() || item.getName().toLowerCase().contains(searchText)) {
                 menuListModel.addElement(item);
             }
         }
     }
 
+    /**
+     * Update the unit price label when a menu item is selected
+     */
     private void updateUnitPrice() {
         MenuItem selected = menuList.getSelectedValue();
         if (selected != null) {
+            // Show the price of the selected item
             unitPriceLabel.setText(String.format("Unit: $%.2f", selected.getPrice()));
         } else {
+            // No item selected
             unitPriceLabel.setText("Unit: $0.00");
         }
     }
 
+    /**
+     * Add the selected menu item to the current order
+     * This is called when "Add to Order" button is clicked
+     */
     private void addToOrder() {
+        // Get the selected menu item
         MenuItem selected = menuList.getSelectedValue();
         if (selected == null) {
+            // No item selected - show error
             JOptionPane.showMessageDialog(this, "Please select a menu item!", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
+        // Get customization options
         String icing = (String) icingCombo.getSelectedItem();
         String filling = (String) fillingCombo.getSelectedItem();
         int qty = (Integer) qtySpinner.getValue();
         double price = selected.getPrice();
-        double total = price * qty;
+        double total = price * qty; // Calculate total for this item
 
-        // Add to temporary order list
+        // Create temporary order item (not saved to database yet)
         OrderItemTemp item = new OrderItemTemp(selected, qty, icing, filling, price, total);
         currentOrderItems.add(item);
 
-        // Add to table
+        // Build options string for display in table
         String options = "";
         if (!icing.equals("None") || !filling.equals("None")) {
             List<String> opts = new ArrayList<>();
@@ -322,9 +408,10 @@ public class OakDonutsGUI extends JFrame {
             if (!filling.equals("None")) opts.add("Filling: " + filling);
             options = String.join(", ", opts);
         } else {
-            options = "-";
+            options = "-"; // No options selected
         }
 
+        // Add row to order table
         orderTableModel.addRow(new Object[]{
                 selected.getName(),
                 options,
@@ -333,36 +420,50 @@ public class OakDonutsGUI extends JFrame {
                 String.format("$%.2f", total)
         });
 
+        // Recalculate and update totals
         updateTotals();
     }
 
+    /**
+     * Calculate and update the subtotal, tax, and total labels
+     */
     private void updateTotals() {
+        // Sum up all item totals
         double subtotal = 0.0;
         for (OrderItemTemp item : currentOrderItems) {
             subtotal += item.total;
         }
 
+        // Calculate tax and total
         double tax = subtotal * TAX_RATE;
         double total = subtotal + tax;
 
+        // Update labels with formatted currency
         subtotalLabel.setText(String.format("$%.2f", subtotal));
         taxLabel.setText(String.format("$%.2f", tax));
         totalLabel.setText(String.format("$%.2f", total));
     }
 
+    /**
+     * Clear the entire current order
+     */
     private void clearOrder() {
-        currentOrderItems.clear();
-        orderTableModel.setRowCount(0);
-        updateTotals();
+        currentOrderItems.clear();        // Clear temporary order items
+        orderTableModel.setRowCount(0);   // Clear table
+        updateTotals();                   // Reset totals to $0.00
     }
 
+    /**
+     * Process checkout - save order to database and show confirmation
+     */
     private void checkout() {
+        // Check if order is empty
         if (currentOrderItems.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Your order is empty!", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // Calculate totals
+        // Calculate final totals
         double subtotal = 0.0;
         for (OrderItemTemp item : currentOrderItems) {
             subtotal += item.total;
@@ -370,27 +471,29 @@ public class OakDonutsGUI extends JFrame {
         double tax = subtotal * TAX_RATE;
         double total = subtotal + tax;
 
-        // Create order
-        Order order = new Order(0, LocalDateTime.now(), subtotal, tax, total);
-        orderDAO.insert(order);
+        // ===== SAVE ORDER TO DATABASE =====
 
-        // Save order items
+        // Step 1: Create and insert the Order record
+        Order order = new Order(0, LocalDateTime.now(), subtotal, tax, total);
+        orderDAO.insert(order); // This will set the order ID after insertion
+
+        // Step 2: Insert each OrderItem record linked to this order
         for (OrderItemTemp tempItem : currentOrderItems) {
             OrderItem orderItem = new OrderItem(
-                    0,
-                    order.getId(),
-                    tempItem.menuItem.getId(),
-                    tempItem.menuItem.getName(),
-                    tempItem.quantity,
-                    tempItem.icing,
-                    tempItem.filling,
-                    tempItem.price,
-                    tempItem.total
+                    0,                              // ID (will be auto-generated)
+                    order.getId(),                  // Link to parent order
+                    tempItem.menuItem.getId(),      // Link to menu item
+                    tempItem.menuItem.getName(),    // Item name
+                    tempItem.quantity,              // Quantity
+                    tempItem.icing,                 // Icing option
+                    tempItem.filling,               // Filling option
+                    tempItem.price,                 // Unit price
+                    tempItem.total                  // Line total
             );
-            orderItemDAO.insert(orderItem);
+            orderItemDAO.insert(orderItem); // Save to database
         }
 
-        // Show confirmation dialog
+        // ===== SHOW CONFIRMATION =====
         String message = String.format(
                 "Thank you!\nTotal due: $%.2f\n(This is a mockup – no payment processed.)",
                 total
@@ -398,17 +501,21 @@ public class OakDonutsGUI extends JFrame {
 
         JOptionPane.showMessageDialog(this, message, "Checkout", JOptionPane.INFORMATION_MESSAGE);
 
+        // Clear the order for next customer
         clearOrder();
     }
 
-    // Helper class for temporary order items
+    /**
+     * Helper class to temporarily store order items before checkout
+     * This is used during the ordering process, before items are saved to database
+     */
     private class OrderItemTemp {
-        MenuItem menuItem;
-        int quantity;
-        String icing;
-        String filling;
-        double price;
-        double total;
+        MenuItem menuItem;  // The menu item being ordered
+        int quantity;       // How many
+        String icing;       // Icing option
+        String filling;     // Filling option
+        double price;       // Unit price
+        double total;       // Total price for this line item
 
         OrderItemTemp(MenuItem menuItem, int quantity, String icing, String filling, double price, double total) {
             this.menuItem = menuItem;
@@ -420,9 +527,14 @@ public class OakDonutsGUI extends JFrame {
         }
     }
 
+    /**
+     * Main method - can launch GUI directly for testing
+     */
     public static void main(String[] args) {
+        // Run on Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
             try {
+                // Use system look and feel
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception e) {
                 e.printStackTrace();
