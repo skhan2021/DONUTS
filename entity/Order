@@ -2,13 +2,33 @@ package entity;
 
 import java.time.LocalDateTime;
 
+/**
+ * Order - Entity class representing a customer order
+ *
+ * This represents a complete order (like a receipt) that contains:
+ * - When the order was placed
+ * - Financial totals (subtotal, tax, total)
+ *
+ * The actual items in the order are stored separately in OrderItem table.
+ * One Order can have many OrderItems (one-to-many relationship).
+ *
+ * Table columns:
+ *   id         - Unique identifier (auto-generated)
+ *   order_date - When order was placed
+ *   subtotal   - Sum of all item prices before tax
+ *   tax        - Tax amount
+ *   total      - Final total (subtotal + tax)
+ */
 public class Order {
-    private int id;
-    private LocalDateTime orderDate;
-    private double subtotal;
-    private double tax;
-    private double total;
+    private int id;                      // Primary key
+    private LocalDateTime orderDate;     // Date and time of order
+    private double subtotal;             // Pre-tax total
+    private double tax;                  // Tax amount
+    private double total;                // Final total
 
+    /**
+     * Constructor - creates an Order with all fields
+     */
     public Order(int id, LocalDateTime orderDate, double subtotal, double tax, double total) {
         this.id = id;
         this.orderDate = orderDate;
@@ -17,18 +37,45 @@ public class Order {
         this.total = total;
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    // Getters and Setters
 
-    public LocalDateTime getOrderDate() { return orderDate; }
-    public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
+    public int getId() {
+        return id;
+    }
 
-    public double getSubtotal() { return subtotal; }
-    public void setSubtotal(double subtotal) { this.subtotal = subtotal; }
+    public void setId(int id) {
+        this.id = id;
+    }
 
-    public double getTax() { return tax; }
-    public void setTax(double tax) { this.tax = tax; }
+    public LocalDateTime getOrderDate() {
+        return orderDate;
+    }
 
-    public double getTotal() { return total; }
-    public void setTotal(double total) { this.total = total; }
+    public void setOrderDate(LocalDateTime orderDate) {
+        this.orderDate = orderDate;
+    }
+
+    public double getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(double subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public double getTax() {
+        return tax;
+    }
+
+    public void setTax(double tax) {
+        this.tax = tax;
+    }
+
+    public double getTotal() {
+        return total;
+    }
+
+    public void setTotal(double total) {
+        this.total = total;
+    }
 }
