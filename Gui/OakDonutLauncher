@@ -9,99 +9,141 @@ import entity.OrderItemDAO;
 import javax.swing.*;
 import java.awt.*;
 
-
+/**
+ * OakDonutsLauncher - Main application launcher window
+ *
+ * This is the entry point for the Oak Donuts ordering system.
+ * It provides two options:
+ * 1. Customer Ordering Interface - for placing orders
+ * 2. Admin Panel - for managing menu items and viewing orders (password protected)
+ */
 public class OakDonutsLauncher extends JFrame {
 
+    /**
+     * Constructor - sets up the launcher window
+     */
     public OakDonutsLauncher() {
+        // Configure the main window
         setTitle("Oak Donuts - System Launcher");
         setSize(400, 300);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        setLayout(new BorderLayout(20, 20));
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // Exit app when window closes
+        setLocationRelativeTo(null); // Center window on screen
+        setLayout(new BorderLayout(20, 20)); // Use BorderLayout with 20px gaps
 
-        // Logo/Title panel
+        // ===== TITLE SECTION (NORTH) =====
+        // Create panel for logo/title with 3 rows (title, subtitle, version)
         JPanel titlePanel = new JPanel(new GridLayout(3, 1));
-        titlePanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 10, 20));
+        titlePanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 10, 20)); // Add padding
 
+        // Main title label
         JLabel titleLabel = new JLabel("Oak Donuts", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 32));
 
+        // Subtitle label
         JLabel subtitleLabel = new JLabel("Ordering System", SwingConstants.CENTER);
         subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         subtitleLabel.setForeground(Color.GRAY);
 
+        // Version label
         JLabel versionLabel = new JLabel("Version 1.0", SwingConstants.CENTER);
         versionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         versionLabel.setForeground(Color.LIGHT_GRAY);
 
+        // Add all labels to the title panel
         titlePanel.add(titleLabel);
         titlePanel.add(subtitleLabel);
         titlePanel.add(versionLabel);
 
-        add(titlePanel, BorderLayout.NORTH);
+        add(titlePanel, BorderLayout.NORTH); // Add title panel to top of window
 
-        // Buttons panel
-        JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 10, 10));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 40, 30, 40));
+        // ===== BUTTONS SECTION (CENTER) =====
+        // Create panel for the two main buttons
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 10, 10)); // 2 rows, 1 column, 10px gaps
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 40, 30, 40)); // Add padding
 
+        // Customer ordering button
         JButton customerBtn = new JButton("Customer Ordering");
         customerBtn.setFont(new Font("Arial", Font.BOLD, 16));
         customerBtn.setPreferredSize(new Dimension(300, 50));
+        // When clicked, launch the customer interface
         customerBtn.addActionListener(e -> launchCustomerInterface());
 
+        // Admin panel button
         JButton adminBtn = new JButton("Admin Panel");
         adminBtn.setFont(new Font("Arial", Font.BOLD, 16));
         adminBtn.setPreferredSize(new Dimension(300, 50));
+        // When clicked, launch the admin panel (with password check)
         adminBtn.addActionListener(e -> launchAdminPanel());
 
+        // Add buttons to the button panel
         buttonPanel.add(customerBtn);
         buttonPanel.add(adminBtn);
 
-        add(buttonPanel, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.CENTER); // Add button panel to center of window
 
-        // Footer
+        // ===== FOOTER SECTION (SOUTH) =====
+        // Copyright footer
         JLabel footerLabel = new JLabel("© 2024 Oak Donuts. All rights reserved.", SwingConstants.CENTER);
         footerLabel.setFont(new Font("Arial", Font.PLAIN, 10));
         footerLabel.setForeground(Color.GRAY);
-        footerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        add(footerLabel, BorderLayout.SOUTH);
+        footerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0)); // Add bottom padding
+        add(footerLabel, BorderLayout.SOUTH); // Add footer to bottom of window
     }
 
+    /**
+     * Launch the customer ordering interface
+     * Opens a new window for customers to browse menu and place orders
+     */
     private void launchCustomerInterface() {
+        // SwingUtilities.invokeLater ensures GUI is created on the Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
             OakDonutsGUI customerGUI = new OakDonutsGUI();
             customerGUI.setVisible(true);
         });
     }
 
+    /**
+     * Launch the admin panel with password protection
+     * Prompts for password before opening admin interface
+     */
     private void launchAdminPanel() {
-        // Simple password protection
+        // Show password input dialog
         String password = JOptionPane.showInputDialog(this,
                 "Enter admin password:",
                 "Authentication",
                 JOptionPane.QUESTION_MESSAGE);
 
+        // Check if password is correct (simple check - in real app, use proper authentication)
         if (password != null && password.equals("admin")) {
+            // Password correct - open admin panel
             SwingUtilities.invokeLater(() -> {
                 AdminPanel adminPanel = new AdminPanel();
                 adminPanel.setVisible(true);
             });
         } else if (password != null) {
+            // Password incorrect - show error message
             JOptionPane.showMessageDialog(this,
                     "Incorrect password!",
                     "Authentication Failed",
                     JOptionPane.ERROR_MESSAGE);
         }
+        // If password is null, user clicked cancel - do nothing
     }
 
+    /**
+     * Main method - application entry point
+     */
     public static void main(String[] args) {
+        // Run GUI creation on the Event Dispatch Thread for thread safety
         SwingUtilities.invokeLater(() -> {
             try {
+                // Set the look and feel to match the operating system
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
+            // Create and display the launcher window
             OakDonutsLauncher launcher = new OakDonutsLauncher();
             launcher.setVisible(true);
         });
