@@ -7,8 +7,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * OrderDAO - Data Access Object for Order entities
+ *
+ * Handles all database operations for orders:
+ * - CRUD operations
+ * - Custom method to get next available order ID
+ * - Cascading delete of order items when order is deleted
+ */
 public class OrderDAO implements DAO<Order> {
 
+    /**
+     * Get a single order by ID
+     */
     @Override
     public Optional<Order> get(int id) {
         DB db = DB.getInstance();
@@ -21,7 +32,7 @@ public class OrderDAO implements DAO<Order> {
             if (rs.next()) {
                 Order order = new Order(
                         rs.getInt("id"),
-                        rs.getTimestamp("order_date").toLocalDateTime(),
+                        rs.getTimestamp("order_date").toLocalDateTime(),  // Convert SQL Timestamp to LocalDateTime
                         rs.getDouble("subtotal"),
                         rs.getDouble("tax"),
                         rs.getDouble("total")
@@ -34,6 +45,9 @@ public class OrderDAO implements DAO<Order> {
         return Optional.empty();
     }
 
+    /**
+     * Get all orders, ordered by date (newest first)
+     */
     @Override
     public List<Order> getAll() {
         DB db = DB.getInstance();
@@ -59,12 +73,22 @@ public class OrderDAO implements DAO<Order> {
         return orders;
     }
 
+    /**
+     * Insert a new order into the database
+     *
+     * This method retrieves the auto-generated ID and updates the order object.
+     * This is important because we need the order ID to insert order items.
+     */
     @Override
     public void insert(Order order) {
         DB db = DB.getInstance();
         try {
             String sql = "INSERT INTO Orders (order_date, subtotal, tax, total) VALUES (?, ?, ?, ?)";
+
+            // Use RETURN_GENERATED_KEYS to get the auto-generated ID
             PreparedStatement stmt = db.getPreparedStatement(sql, Statement.RETURN_GENERATED_KEYS);
+
+            // Convert LocalDateTime to SQL Timestamp
             stmt.setTimestamp(1, Timestamp.valueOf(order.getOrderDate()));
             stmt.setDouble(2, order.getSubtotal());
             stmt.setDouble(3, order.getTax());
@@ -72,6 +96,7 @@ public class OrderDAO implements DAO<Order> {
 
             int rowsInserted = stmt.executeUpdate();
             if (rowsInserted > 0) {
+                // Get the generated ID and set it on the order object
                 ResultSet generatedKeys = stmt.getGeneratedKeys();
                 if (generatedKeys.next()) {
                     order.setId(generatedKeys.getInt(1));
@@ -83,12 +108,16 @@ public class OrderDAO implements DAO<Order> {
         }
     }
 
+    /**
+     * Update an existing order in the database
+     */
     @Override
     public void update(Order order) {
         DB db = DB.getInstance();
         try {
             String sql = "UPDATE Orders SET order_date=?, subtotal=?, tax=?, total=? WHERE id=?";
             PreparedStatement stmt = db.getPreparedStatement(sql);
+
             stmt.setTimestamp(1, Timestamp.valueOf(order.getOrderDate()));
             stmt.setDouble(2, order.getSubtotal());
             stmt.setDouble(3, order.getTax());
@@ -104,17 +133,25 @@ public class OrderDAO implements DAO<Order> {
         }
     }
 
+    /**
+     * Delete an order from the database
+     *
+     * IMPORTANT: This also deletes all associated order items (cascading delete)
+     * Steps:
+     * 1. Delete all OrderItem records for this order
+     * 2. Delete the Order record itself
+     */
     @Override
     public void delete(Order order) {
         DB db = DB.getInstance();
         try {
-            // First delete all order items
+            // Step 1: Delete all order items
             String sqlItems = "DELETE FROM OrderItem WHERE order_id = ?";
             PreparedStatement stmtItems = db.getPreparedStatement(sqlItems);
             stmtItems.setInt(1, order.getId());
             stmtItems.executeUpdate();
 
-            // Then delete the order
+            // Step 2: Delete the order
             String sql = "DELETE FROM Orders WHERE id = ?";
             PreparedStatement stmt = db.getPreparedStatement(sql);
             stmt.setInt(1, order.getId());
@@ -128,6 +165,10 @@ public class OrderDAO implements DAO<Order> {
         }
     }
 
+    /**
+     * Get the next available order ID
+     * Finds the current maximum ID and adds 1
+     */
     public int getNextOrderId() {
         DB db = DB.getInstance();
         try {
@@ -139,6 +180,6 @@ public class OrderDAO implements DAO<Order> {
         } catch (SQLException e) {
             System.err.println("Error getting next order ID: " + e.getMessage());
         }
-        return 1;
+        return 1;  // If no orders exist, start with ID 1
     }
 }
